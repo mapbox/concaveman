@@ -3,6 +3,7 @@
 var rbush = require('rbush');
 var convexHull = require('monotone-convex-hull-2d');
 var Queue = require('tinyqueue');
+var pointInPolygon = require('point-in-polygon');
 
 module.exports = concaveHull;
 
@@ -11,7 +12,7 @@ function concaveHull(points, maxConcavity, minSegLength) {
     minSegLength = minSegLength || 0;
 
     console.time('convex hull');
-    var hull = convexHull(points);
+    var hull = fastConvexHull(points);
     console.timeEnd('convex hull');
 
     console.time('rbush load');
@@ -20,7 +21,7 @@ function concaveHull(points, maxConcavity, minSegLength) {
 
     var queue = [];
     for (var i = 0, last; i < hull.length; i++) {
-        var p = points[hull[i]];
+        var p = hull[i];
         last = insertNode(p, last);
         tree.remove(p);
         queue.push(last);
@@ -161,4 +162,31 @@ function sqSegBoxDist(a, b, bbox) {
     var dx = Math.max(bbox[0] - Math.max(a[0], b[0]), Math.min(a[0], b[0]) - bbox[2], 0);
     var dy = Math.max(bbox[1] - Math.max(a[1], b[1]), Math.min(a[1], b[1]) - bbox[3], 0);
     return dx * dx + dy * dy;
+}
+
+// speeds up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
+function fastConvexHull(points) {
+    var left = points[0];
+    var top = points[0];
+    var right = points[0];
+    var bottom = points[0];
+
+    for (var i = 0; i < points.length; i++) {
+        var p = points[i];
+        if (p[0] < left[0]) left = p;
+        if (p[0] > right[0]) right = p;
+        if (p[1] < top[1]) top = p;
+        if (p[1] > bottom[1]) bottom = p;
+    }
+
+    var cull = [left, top, right, bottom];
+    var filtered = cull.slice();
+    for (i = 0; i < points.length; i++) {
+        if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
+    }
+
+    var indices = convexHull(filtered);
+    var hull = [];
+    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
+    return hull;
 }

@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "monotone-convex-hull-2d": "^1.0.1",
+    "point-in-polygon": "^1.0.0",
     "rbush": "^1.4.2",
     "tinyqueue": "^1.0.1"
   },
