@@ -4,6 +4,7 @@ var rbush = require('rbush');
 var convexHull = require('monotone-convex-hull-2d');
 var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
+var orient = require('robust-orientation')[3];
 
 module.exports = concaveHull;
 
@@ -42,7 +43,7 @@ function concaveHull(points, maxConcavity, minSegLength) {
         var maxSqDist = sqDist / maxSqConcavity;
 
         // find the nearest point to current edge that's not closer to adjacent edges
-        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqDist);
+        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqDist, queue);
 
         if (c && Math.min(getSqDist(c, a), getSqDist(c, b)) <= maxSqDist) {
             queue.push(node);
@@ -121,7 +122,7 @@ function sqSegDist(p, p1, p2) {
     return dx * dx + dy * dy;
 }
 
-function findCandidate(tree, a, b, c, d, maxDist) {
+function findCandidate(tree, a, b, c, d, maxDist, edges) {
     var node = tree.data,
         queue = new Queue(null, compareDist);
 
@@ -144,7 +145,7 @@ function findCandidate(tree, a, b, c, d, maxDist) {
             var p = item.node;
             var d0 = sqSegDist(p, a, b);
             var d1 = sqSegDist(p, c, d);
-            if (item.dist < d0 && item.dist < d1) return p;
+            if (item.dist < d0 && item.dist < d1 && noIntersections(b, c, p, edges)) return p;
         }
 
         node = queue.pop();
@@ -152,6 +153,14 @@ function findCandidate(tree, a, b, c, d, maxDist) {
     }
 
     return null;
+}
+
+function noIntersections(a, b, p, edges) {
+    for (var i = 0; i < edges.length; i++) {
+        var e = edges[i];
+        if (intersects(a, p, e.p, e.next.p) || intersects(b, p, e.p, e.next.p)) return false;
+    }
+    return true;
 }
 
 function compareDist(a, b) {
@@ -189,4 +198,10 @@ function fastConvexHull(points) {
     var hull = [];
     for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
     return hull;
+}
+
+function intersects(p1, q1, p2, q2) {
+    return p1 !== q2 && q1 !== p2 &&
+        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
+        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
 }
