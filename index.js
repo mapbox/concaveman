@@ -8,17 +8,26 @@ var orient = require('robust-orientation')[3];
 
 module.exports = concaveHull;
 
-function concaveHull(points, maxConcavity, minSegLength) {
+function updateBBox(node) {
+    var p1 = node.p;
+    var p2 = node.next.p;
+    node.minX = Math.min(p1[0], p2[0]);
+    node.minY = Math.min(p1[1], p2[1]);
+    node.maxX = Math.max(p1[0], p2[0]);
+    node.maxY = Math.max(p1[1], p2[1]);
+}
+
+function concaveHull(points, maxConcavity, minSegLength, strict) {
     maxConcavity = maxConcavity || 2;
     minSegLength = minSegLength || 0;
 
-    console.time('convex hull');
+    // console.time('convex hull');
     var hull = fastConvexHull(points);
-    console.timeEnd('convex hull');
+    // console.timeEnd('convex hull');
 
-    console.time('rbush load');
+    // console.time('rbush load');
     var tree = rbush(16, ['[0]', '[1]', '[0]', '[1]']).load(points);
-    console.timeEnd('rbush load');
+    // console.timeEnd('rbush load');
 
     var queue = [];
     for (var i = 0, last; i < hull.length; i++) {
@@ -28,12 +37,21 @@ function concaveHull(points, maxConcavity, minSegLength) {
         queue.push(last);
     }
 
+    var segTree = rbush(16, ['.minX', '.minY', '.maxX', '.maxY']);
+
+    var node = last;
+    do {
+        updateBBox(node);
+        segTree.insert(node);
+        node = node.next;
+    } while (node !== last);
+
     var maxSqConcavity = maxConcavity * maxConcavity;
     var minSqSegLength = minSegLength * minSegLength;
 
-    console.time('concave');
+    // console.time('concave');
     while (queue.length) {
-        var node = queue.shift();
+        node = queue.shift();
         var a = node.p;
         var b = node.next.p;
 
@@ -43,15 +61,20 @@ function concaveHull(points, maxConcavity, minSegLength) {
         var maxSqDist = sqDist / maxSqConcavity;
 
         // find the nearest point to current edge that's not closer to adjacent edges
-        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqDist, queue);
+        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqDist, segTree);
 
         if (c && Math.min(getSqDist(c, a), getSqDist(c, b)) <= maxSqDist) {
+            segTree.remove(node);
             queue.push(node);
             queue.push(insertNode(c, node));
-            tree.remove(c);
+            updateBBox(node);
+            updateBBox(node.next);
+            segTree.insert(node);
+            segTree.insert(node.next);
+            if (strict) tree.remove(c);
         }
     }
-    console.timeEnd('concave');
+    // console.timeEnd('concave');
 
     node = last;
     var concave = [];
@@ -69,7 +92,11 @@ function insertNode(p, prev) {
     var node = {
         p: p,
         prev: null,
-        next: null
+        next: null,
+        minX: 0,
+        minY: 0,
+        maxX: 0,
+        maxY: 0
     };
 
     if (!prev) {
@@ -122,7 +149,7 @@ function sqSegDist(p, p1, p2) {
     return dx * dx + dy * dy;
 }
 
-function findCandidate(tree, a, b, c, d, maxDist, edges) {
+function findCandidate(tree, a, b, c, d, maxDist, segTree) {
     var node = tree.data,
         queue = new Queue(null, compareDist);
 
@@ -145,7 +172,9 @@ function findCandidate(tree, a, b, c, d, maxDist, edges) {
             var p = item.node;
             var d0 = sqSegDist(p, a, b);
             var d1 = sqSegDist(p, c, d);
-            if (item.dist < d0 && item.dist < d1 && noIntersections(b, c, p, edges)) return p;
+            if (item.dist < d0 && item.dist < d1 &&
+                noIntersections(b, p, segTree) &&
+                noIntersections(c, p, segTree)) return p;
         }
 
         node = queue.pop();
@@ -155,10 +184,16 @@ function findCandidate(tree, a, b, c, d, maxDist, edges) {
     return null;
 }
 
-function noIntersections(a, b, p, edges) {
+function noIntersections(a, b, segTree) {
+    var minX = Math.min(a[0], b[0]);
+    var minY = Math.min(a[1], b[1]);
+    var maxX = Math.max(a[0], b[0]);
+    var maxY = Math.max(a[1], b[1]);
+    var edges = segTree.search([minX, minY, maxX, maxY]);
     for (var i = 0; i < edges.length; i++) {
-        var e = edges[i];
-        if (intersects(a, p, e.p, e.next.p) || intersects(b, p, e.p, e.next.p)) return false;
+        var p1 = edges[i].p;
+        var p2 = edges[i].next.p;
+        if (intersects(p1, p2, a, b)) return false;
     }
     return true;
 }
