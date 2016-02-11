@@ -8,15 +8,6 @@ var orient = require('robust-orientation')[3];
 
 module.exports = concaveman;
 
-function updateBBox(node) {
-    var p1 = node.p;
-    var p2 = node.next.p;
-    node.minX = Math.min(p1[0], p2[0]);
-    node.minY = Math.min(p1[1], p2[1]);
-    node.maxX = Math.max(p1[0], p2[0]);
-    node.maxY = Math.max(p1[1], p2[1]);
-}
-
 function concaveman(points, concavity, lengthThreshold) {
     concavity = Math.max(0, concavity === undefined ? 2 : concavity);
     lengthThreshold = lengthThreshold || 0;
@@ -89,6 +80,107 @@ function concaveman(points, concavity, lengthThreshold) {
     return concave;
 }
 
+function findCandidate(tree, a, b, c, d, maxDist, segTree) {
+    var node = tree.data,
+        queue = new Queue(null, compareDist);
+
+    while (node) {
+        for (var i = 0; i < node.children.length; i++) {
+            var child = node.children[i];
+
+            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child.bbox);
+            if (dist > maxDist) continue;
+
+            queue.push({
+                node: child,
+                isItem: node.leaf,
+                dist: dist
+            });
+        }
+
+        while (queue.length && queue.peek().isItem) {
+            var item = queue.pop();
+            var p = item.node;
+            var d0 = sqSegDist(p, a, b);
+            var d1 = sqSegDist(p, c, d);
+            if (item.dist < d0 && item.dist < d1 &&
+                noIntersections(b, p, segTree) &&
+                noIntersections(c, p, segTree)) return p;
+        }
+
+        node = queue.pop();
+        if (node) node = node.node;
+    }
+
+    return null;
+}
+
+function compareDist(a, b) {
+    return a.dist - b.dist;
+}
+
+function sqSegBoxDist(a, b, bbox) {
+    var dx = Math.max(bbox[0] - Math.max(a[0], b[0]), Math.min(a[0], b[0]) - bbox[2], 0);
+    var dy = Math.max(bbox[1] - Math.max(a[1], b[1]), Math.min(a[1], b[1]) - bbox[3], 0);
+    return dx * dx + dy * dy;
+}
+
+function noIntersections(a, b, segTree) {
+    var minX = Math.min(a[0], b[0]);
+    var minY = Math.min(a[1], b[1]);
+    var maxX = Math.max(a[0], b[0]);
+    var maxY = Math.max(a[1], b[1]);
+    var edges = segTree.search([minX, minY, maxX, maxY]);
+    for (var i = 0; i < edges.length; i++) {
+        var p1 = edges[i].p;
+        var p2 = edges[i].next.p;
+        if (intersects(p1, p2, a, b)) return false;
+    }
+    return true;
+}
+
+function intersects(p1, q1, p2, q2) {
+    return p1 !== q2 && q1 !== p2 &&
+        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
+        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
+}
+
+function updateBBox(node) {
+    var p1 = node.p;
+    var p2 = node.next.p;
+    node.minX = Math.min(p1[0], p2[0]);
+    node.minY = Math.min(p1[1], p2[1]);
+    node.maxX = Math.max(p1[0], p2[0]);
+    node.maxY = Math.max(p1[1], p2[1]);
+}
+
+// speeds up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
+function fastConvexHull(points) {
+    var left = points[0];
+    var top = points[0];
+    var right = points[0];
+    var bottom = points[0];
+
+    for (var i = 0; i < points.length; i++) {
+        var p = points[i];
+        if (p[0] < left[0]) left = p;
+        if (p[0] > right[0]) right = p;
+        if (p[1] < top[1]) top = p;
+        if (p[1] > bottom[1]) bottom = p;
+    }
+
+    var cull = [left, top, right, bottom];
+    var filtered = cull.slice();
+    for (i = 0; i < points.length; i++) {
+        if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
+    }
+
+    var indices = convexHull(filtered);
+    var hull = [];
+    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
+    return hull;
+}
+
 function insertNode(p, prev) {
     var node = {
         p: p,
@@ -148,96 +240,4 @@ function sqSegDist(p, p1, p2) {
     dy = p[1] - y;
 
     return dx * dx + dy * dy;
-}
-
-function findCandidate(tree, a, b, c, d, maxDist, segTree) {
-    var node = tree.data,
-        queue = new Queue(null, compareDist);
-
-    while (node) {
-        for (var i = 0; i < node.children.length; i++) {
-            var child = node.children[i];
-
-            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child.bbox);
-            if (dist > maxDist) continue;
-
-            queue.push({
-                node: child,
-                isItem: node.leaf,
-                dist: dist
-            });
-        }
-
-        while (queue.length && queue.peek().isItem) {
-            var item = queue.pop();
-            var p = item.node;
-            var d0 = sqSegDist(p, a, b);
-            var d1 = sqSegDist(p, c, d);
-            if (item.dist < d0 && item.dist < d1 &&
-                noIntersections(b, p, segTree) &&
-                noIntersections(c, p, segTree)) return p;
-        }
-
-        node = queue.pop();
-        if (node) node = node.node;
-    }
-
-    return null;
-}
-
-function noIntersections(a, b, segTree) {
-    var minX = Math.min(a[0], b[0]);
-    var minY = Math.min(a[1], b[1]);
-    var maxX = Math.max(a[0], b[0]);
-    var maxY = Math.max(a[1], b[1]);
-    var edges = segTree.search([minX, minY, maxX, maxY]);
-    for (var i = 0; i < edges.length; i++) {
-        var p1 = edges[i].p;
-        var p2 = edges[i].next.p;
-        if (intersects(p1, p2, a, b)) return false;
-    }
-    return true;
-}
-
-function compareDist(a, b) {
-    return a.dist - b.dist;
-}
-
-function sqSegBoxDist(a, b, bbox) {
-    var dx = Math.max(bbox[0] - Math.max(a[0], b[0]), Math.min(a[0], b[0]) - bbox[2], 0);
-    var dy = Math.max(bbox[1] - Math.max(a[1], b[1]), Math.min(a[1], b[1]) - bbox[3], 0);
-    return dx * dx + dy * dy;
-}
-
-// speeds up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
-function fastConvexHull(points) {
-    var left = points[0];
-    var top = points[0];
-    var right = points[0];
-    var bottom = points[0];
-
-    for (var i = 0; i < points.length; i++) {
-        var p = points[i];
-        if (p[0] < left[0]) left = p;
-        if (p[0] > right[0]) right = p;
-        if (p[1] < top[1]) top = p;
-        if (p[1] > bottom[1]) bottom = p;
-    }
-
-    var cull = [left, top, right, bottom];
-    var filtered = cull.slice();
-    for (i = 0; i < points.length; i++) {
-        if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
-    }
-
-    var indices = convexHull(filtered);
-    var hull = [];
-    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
-    return hull;
-}
-
-function intersects(p1, q1, p2, q2) {
-    return p1 !== q2 && q1 !== p2 &&
-        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
-        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
 }
