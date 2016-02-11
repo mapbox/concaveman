@@ -11,11 +11,12 @@
   },
   "devDependencies": {
     "eslint": "^1.10.3",
-    "eslint-config-mourner": "^1.0.1"
+    "eslint-config-mourner": "^1.0.1",
+    "tap": "^5.4.3"
   },
   "scripts": {
-    "pretest": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "eslint index.js debug.js test/test.js",
+    "test": "tap test"
   },
   "keywords": [
     "concave",
