@@ -26,7 +26,8 @@ Higher values result in simpler shapes.
 
 ### Dependencies
 
-- [monotone-convex-hull-2d](https://github.com/mikolalysenko/monotone-convex-hull-2d) for the convex hull algorithm
-- [rbush](https://github.com/mourner/rbush) for point indexing
-- [tinyqueue](https://github.com/mourner/tinyqueue) as a priority queue
-- [point-in-polygon](https://github.com/substack/point-in-polygon) for point in polygon queries
+- [monotone-convex-hull-2d](https://github.com/mikolalysenko/monotone-convex-hull-2d) for the convex hull algorithm.
+- [rbush](https://github.com/mourner/rbush) for point indexing.
+- [tinyqueue](https://github.com/mourner/tinyqueue) as a priority queue.
+- [point-in-polygon](https://github.com/substack/point-in-polygon) for point in polygon queries.
+- [robust-orientation](https://github.com/mikolalysenko/robust-orientation) for 3-point orientation tests.
