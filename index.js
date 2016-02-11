@@ -9,65 +9,64 @@ var orient = require('robust-orientation')[3];
 module.exports = concaveman;
 
 function concaveman(points, concavity, lengthThreshold) {
+    // a relative measure of concavity; higher value means simpler hull
     concavity = Math.max(0, concavity === undefined ? 2 : concavity);
+
+    // when a segment goes below this length threshold, it won't be drilled down further
     lengthThreshold = lengthThreshold || 0;
 
-    // console.time('convex hull');
+    // start with a convex hull of the points
     var hull = fastConvexHull(points);
-    // console.timeEnd('convex hull');
 
-    // console.time('rbush load');
+    // index the points with an R-tree
     var tree = rbush(16, ['[0]', '[1]', '[0]', '[1]']).load(points);
-    // console.timeEnd('rbush load');
 
+    // turn the convex hull into a linked list and populate the initial edge queue with the nodes
     var queue = [];
     for (var i = 0, last; i < hull.length; i++) {
         var p = hull[i];
-        last = insertNode(p, last);
         tree.remove(p);
+        last = insertNode(p, last);
         queue.push(last);
     }
 
+    // index the segments with an R-tree (for intersection checks)
     var segTree = rbush(16, ['.minX', '.minY', '.maxX', '.maxY']);
-
-    var node = last;
-    do {
-        updateBBox(node);
-        segTree.insert(node);
-        node = node.next;
-    } while (node !== last);
+    for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
 
     var sqConcavity = concavity * concavity;
     var sqLenThreshold = lengthThreshold * lengthThreshold;
 
-    // console.time('concave');
+    // process edges one by one
     while (queue.length) {
-        node = queue.shift();
+        var node = queue.shift();
         var a = node.p;
         var b = node.next.p;
 
+        // skip the edge if it's already short enough
         var sqLen = getSqDist(a, b);
         if (sqLen < sqLenThreshold) continue;
 
         var maxSqLen = sqLen / sqConcavity;
 
-        // find the nearest point to current edge that's not closer to adjacent edges
-        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
+        // find the best connection point for the current edge to flex inward to
+        p = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
 
-        if (c && Math.min(getSqDist(c, a), getSqDist(c, b)) <= maxSqLen) {
-            segTree.remove(node);
+        // if we found a connection and it satisfies our concavity measure
+        if (p && Math.min(getSqDist(p, a), getSqDist(p, b)) <= maxSqLen) {
+            // connect the edge endpoints through this point and add 2 new edges to the queue
             queue.push(node);
-            queue.push(insertNode(c, node));
-            updateBBox(node);
-            updateBBox(node.next);
-            segTree.insert(node);
-            segTree.insert(node.next);
+            queue.push(insertNode(p, node));
 
-            tree.remove(c);
+            // update point and segment indexes
+            tree.remove(p);
+            segTree.remove(node);
+            segTree.insert(updateBBox(node));
+            segTree.insert(updateBBox(node.next));
         }
     }
-    // console.timeEnd('concave');
 
+    // convert the resulting hull linked list to an array of points
     node = last;
     var concave = [];
     do {
@@ -81,26 +80,30 @@ function concaveman(points, concavity, lengthThreshold) {
 }
 
 function findCandidate(tree, a, b, c, d, maxDist, segTree) {
-    var node = tree.data,
-        queue = new Queue(null, compareDist);
+    var queue = new Queue(null, compareDist);
+    var node = tree.data;
 
+    // search through the point R-tree with a depth-first search using a priority queue
+    // in the order of distance to the edge (b, c)
     while (node) {
         for (var i = 0; i < node.children.length; i++) {
             var child = node.children[i];
 
             var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child.bbox);
-            if (dist > maxDist) continue;
+            if (dist > maxDist) continue; // skip the node if it's farther than we ever need
 
             queue.push({
                 node: child,
-                isItem: node.leaf,
                 dist: dist
             });
         }
 
-        while (queue.length && queue.peek().isItem) {
+        while (queue.length && !queue.peek().node.children) {
             var item = queue.pop();
             var p = item.node;
+
+            // skip all points that are as close to adjacent edges (a,b) and (c,d),
+            // and points that would introduce self-intersections when connected
             var d0 = sqSegDist(p, a, b);
             var d1 = sqSegDist(p, c, d);
             if (item.dist < d0 && item.dist < d1 &&
@@ -119,32 +122,35 @@ function compareDist(a, b) {
     return a.dist - b.dist;
 }
 
+// square distance from a segment bounding box to the given one
 function sqSegBoxDist(a, b, bbox) {
     var dx = Math.max(bbox[0] - Math.max(a[0], b[0]), Math.min(a[0], b[0]) - bbox[2], 0);
     var dy = Math.max(bbox[1] - Math.max(a[1], b[1]), Math.min(a[1], b[1]) - bbox[3], 0);
     return dx * dx + dy * dy;
 }
 
+// check if the edge (a,b) doesn't intersect any other edges
 function noIntersections(a, b, segTree) {
     var minX = Math.min(a[0], b[0]);
     var minY = Math.min(a[1], b[1]);
     var maxX = Math.max(a[0], b[0]);
     var maxY = Math.max(a[1], b[1]);
+
     var edges = segTree.search([minX, minY, maxX, maxY]);
     for (var i = 0; i < edges.length; i++) {
-        var p1 = edges[i].p;
-        var p2 = edges[i].next.p;
-        if (intersects(p1, p2, a, b)) return false;
+        if (intersects(edges[i].p, edges[i].next.p, a, b)) return false;
     }
     return true;
 }
 
+// check if the edges (p1,q1) and (p2,q2) intersect
 function intersects(p1, q1, p2, q2) {
     return p1 !== q2 && q1 !== p2 &&
         orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
         orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
 }
 
+// update the bounding box of a node's edge
 function updateBBox(node) {
     var p1 = node.p;
     var p2 = node.next.p;
@@ -152,15 +158,17 @@ function updateBBox(node) {
     node.minY = Math.min(p1[1], p2[1]);
     node.maxX = Math.max(p1[0], p2[0]);
     node.maxY = Math.max(p1[1], p2[1]);
+    return node;
 }
 
-// speeds up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
+// speed up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
 function fastConvexHull(points) {
     var left = points[0];
     var top = points[0];
     var right = points[0];
     var bottom = points[0];
 
+    // find the leftmost, rightmost, topmost and bottommost points
     for (var i = 0; i < points.length; i++) {
         var p = points[i];
         if (p[0] < left[0]) left = p;
@@ -169,18 +177,23 @@ function fastConvexHull(points) {
         if (p[1] > bottom[1]) bottom = p;
     }
 
+    // filter out points that are inside the resulting quadrilateral
     var cull = [left, top, right, bottom];
     var filtered = cull.slice();
     for (i = 0; i < points.length; i++) {
         if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
     }
 
+    // get convex hull around the filtered points
     var indices = convexHull(filtered);
+
+    // return the hull as array of points (rather than indices)
     var hull = [];
     for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
     return hull;
 }
 
+// create a new node in a doubly linked list
 function insertNode(p, prev) {
     var node = {
         p: p,
