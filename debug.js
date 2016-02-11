@@ -6,25 +6,29 @@ var concaveHull = require('./');
 var points = require('./tmp/test.json');
 
 var colors = ['#006837', '#1a9850', '#66bd63', '#a6d96a', '#d9ef8b', '#fee08b', '#fdae61', '#f46d43', '#d73027', '#a50026'];
-var dist = 100000;
+var distStep = 100000;
+var numClasses = 10;
+
+var dist = distStep;
+var start = 0;
 var end = 0;
 var hulls = [];
 
-for (var i = 0, last; i < 3; i++) {
+console.time('total');
+for (var i = 0, last = []; i < numClasses; i++) {
+    start = end;
     while (points[end][2] < dist) end++;
 
-    var id = 'concave hull on ' + end + ' points';
-    console.time(id);
-    var hull = concaveHull(points.slice(0, end), 1.7, 0.005);
-    console.timeEnd(id);
-
-    console.log('concave hull size: ' + hull.length + '\n');
+    var now = Date.now();
+    var hull = concaveHull(points.slice(start, end).concat(last), 1.5, 0.005, true);
+    console.log('concave hull on ' + (end - start + last.length) + ' points in ' +
+        (Date.now() - now) + ', size: ' + hull.length);
 
     hulls.push({
         type: 'Feature',
         geometry: {
             type: 'Polygon',
-            coordinates: last ? [hull, last] : [hull]
+            coordinates: last.length ? [hull, last] : [hull]
         },
         properties: {
             stroke: 'black',
@@ -35,8 +39,9 @@ for (var i = 0, last; i < 3; i++) {
     });
 
     last = hull;
-    dist += 100000;
+    dist += distStep;
 }
+console.timeEnd('total');
 
 var collection = {
     type: 'FeatureCollection',
