@@ -2,6 +2,10 @@
 
 A very fast **2D concave hull** algorithm in JavaScript (generates a general outline of a point set).
 
+[![Build Status](https://travis-ci.org/mapbox/concaveman.svg?branch=master)](https://travis-ci.org/mapbox/concaveman)
+[![Coverage Status](https://coveralls.io/repos/github/mapbox/concaveman/badge.svg?branch=master)](https://coveralls.io/github/mapbox/concaveman?branch=master)
+[![](https://img.shields.io/badge/simply-awesome-brightgreen.svg)](https://github.com/mourner/projects)
+
 <img width="570" alt="sample concave hull" src="https://cloud.githubusercontent.com/assets/25395/12975726/ada2ad10-d0c6-11e5-96c8-6e42c995e0e2.png">
 
 Based on ideas from the paper
