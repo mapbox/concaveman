@@ -1,9 +1,9 @@
 'use strict';
 
 var fs = require('fs');
-var concaveman = require('./');
+var concaveman = require('../');
 
-var points = require('./tmp/test.json');
+var points = require('../tmp/test.json');
 
 var colors = ['#006837', '#1a9850', '#66bd63', '#a6d96a', '#d9ef8b', '#fee08b', '#fdae61', '#f46d43', '#d73027', '#a50026'];
 var distStep = 100000;
@@ -19,9 +19,11 @@ for (var i = 0, last = []; i < numClasses; i++) {
     start = end;
     while (points[end][2] < dist) end++;
 
+    var part = points.slice(start, end);
+
     var now = Date.now();
-    var hull = concaveman(points.slice(start, end).concat(last), 1.5, 0.005);
-    console.log('concave hull on ' + (end - start + last.length) + ' points in ' +
+    var hull = concaveman(part.concat(last), 1.5, 0.005);
+    console.log('concave hull on ' + (part.length + last.length) + ' points in ' +
         (Date.now() - now) + 'ms, size: ' + hull.length);
 
     hulls.push({

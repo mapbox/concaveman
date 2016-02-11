@@ -15,8 +15,8 @@
     "tap": "^5.4.3"
   },
   "scripts": {
-    "pretest": "eslint index.js debug.js test/test.js",
-    "test": "tap test"
+    "pretest": "eslint index.js test/*.js",
+    "test": "tap test/test.js"
   },
   "keywords": [
     "concave",
