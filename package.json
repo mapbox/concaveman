@@ -1,12 +1,13 @@
 {
   "name": "concaveman",
   "version": "1.0.0",
-  "description": "Fast concave hull algorithm (generates an outline of a point set)",
+  "description": "Fast 2D concave hull algorithm in JavaScript (generates an outline of a point set)",
   "main": "index.js",
   "dependencies": {
     "monotone-convex-hull-2d": "^1.0.1",
     "point-in-polygon": "^1.0.0",
     "rbush": "^1.4.2",
+    "robust-orientation": "^1.1.3",
     "tinyqueue": "^1.0.1"
   },
   "devDependencies": {
@@ -23,7 +24,8 @@
     "hull",
     "algorithm",
     "geometry",
-    "shape"
+    "shape",
+    "outline"
   ],
   "eslintConfig": {
     "extends": "mourner"
