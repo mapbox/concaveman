@@ -6,7 +6,7 @@ var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
 var orient = require('robust-orientation')[3];
 
-module.exports = concaveHull;
+module.exports = concaveman;
 
 function updateBBox(node) {
     var p1 = node.p;
@@ -17,9 +17,9 @@ function updateBBox(node) {
     node.maxY = Math.max(p1[1], p2[1]);
 }
 
-function concaveHull(points, maxConcavity, minSegLength) {
-    maxConcavity = maxConcavity || 2;
-    minSegLength = minSegLength || 0;
+function concaveman(points, concavity, lengthThreshold) {
+    concavity = Math.max(1, concavity || 2);
+    lengthThreshold = lengthThreshold || 0;
 
     // console.time('convex hull');
     var hull = fastConvexHull(points);
@@ -46,8 +46,8 @@ function concaveHull(points, maxConcavity, minSegLength) {
         node = node.next;
     } while (node !== last);
 
-    var maxSqConcavity = maxConcavity * maxConcavity;
-    var minSqSegLength = minSegLength * minSegLength;
+    var sqConcavity = concavity * concavity;
+    var sqLenThreshold = lengthThreshold * lengthThreshold;
 
     // console.time('concave');
     while (queue.length) {
@@ -55,15 +55,15 @@ function concaveHull(points, maxConcavity, minSegLength) {
         var a = node.p;
         var b = node.next.p;
 
-        var sqDist = getSqDist(a, b);
-        if (sqDist < minSqSegLength) continue;
+        var sqLen = getSqDist(a, b);
+        if (sqLen < sqLenThreshold) continue;
 
-        var maxSqDist = sqDist / maxSqConcavity;
+        var maxSqLen = sqLen / sqConcavity;
 
         // find the nearest point to current edge that's not closer to adjacent edges
-        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqDist, segTree);
+        var c = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
 
-        if (c && Math.min(getSqDist(c, a), getSqDist(c, b)) <= maxSqDist) {
+        if (c && Math.min(getSqDist(c, a), getSqDist(c, b)) <= maxSqLen) {
             segTree.remove(node);
             queue.push(node);
             queue.push(insertNode(c, node));

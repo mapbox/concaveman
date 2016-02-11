@@ -1,7 +1,7 @@
 'use strict';
 
 var fs = require('fs');
-var concaveHull = require('./');
+var concaveman = require('./');
 
 var points = require('./tmp/test.json');
 
@@ -20,9 +20,9 @@ for (var i = 0, last = []; i < numClasses; i++) {
     while (points[end][2] < dist) end++;
 
     var now = Date.now();
-    var hull = concaveHull(points.slice(start, end).concat(last), 1.5, 0.005, true);
+    var hull = concaveman(points.slice(start, end).concat(last), 1.5, 0.005);
     console.log('concave hull on ' + (end - start + last.length) + ' points in ' +
-        (Date.now() - now) + ', size: ' + hull.length);
+        (Date.now() - now) + 'ms, size: ' + hull.length);
 
     hulls.push({
         type: 'Feature',

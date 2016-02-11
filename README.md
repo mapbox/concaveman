@@ -10,6 +10,20 @@ Additionally improved from `O(rn)` (where `r` is a number of output points) to `
 by implementing a fast _k nearest points to a segment_ algorithm,
 a modification of a depth-first kNN R-tree search using a priority queue.
 
+### Usage
+
+```js
+var points = [[10, 20], [30, 12.5], ...];
+var polygon = concaveman(points);
+```
+
+Signature: `concaveman(points[, concavity = 2, lengthThreshold = 0])`
+
+- `points` is an array of `[x, y]` points.
+- `concavity` is a relative measure of concavity. `1` results in the most detailed shape, `Infinity` results in a convex hull.
+- `lengthThreshold`: when a segment length is under this threshold, it stops being considered for further detalization.
+Higher values result in simpler shapes.
+
 ### Dependencies
 
 - [monotone-convex-hull-2d](https://github.com/mikolalysenko/monotone-convex-hull-2d) for the convex hull algorithm
