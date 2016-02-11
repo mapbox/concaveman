@@ -22,7 +22,8 @@ var polygon = concaveman(points);
 Signature: `concaveman(points[, concavity = 2, lengthThreshold = 0])`
 
 - `points` is an array of `[x, y]` points.
-- `concavity` is a relative measure of concavity. `1` results in the most detailed shape, `Infinity` results in a convex hull.
+- `concavity` is a relative measure of concavity. `1` results in a relatively detailed shape, `Infinity` results in a convex hull.
+You can use values lower than `1`, but they can produce pretty crazy shapes.
 - `lengthThreshold`: when a segment length is under this threshold, it stops being considered for further detalization.
 Higher values result in simpler shapes.
 

@@ -18,7 +18,7 @@ function updateBBox(node) {
 }
 
 function concaveman(points, concavity, lengthThreshold) {
-    concavity = Math.max(1, concavity || 2);
+    concavity = Math.max(0, concavity === undefined ? 2 : concavity);
     lengthThreshold = lengthThreshold || 0;
 
     // console.time('convex hull');
