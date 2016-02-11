@@ -17,7 +17,7 @@ function updateBBox(node) {
     node.maxY = Math.max(p1[1], p2[1]);
 }
 
-function concaveHull(points, maxConcavity, minSegLength, strict) {
+function concaveHull(points, maxConcavity, minSegLength) {
     maxConcavity = maxConcavity || 2;
     minSegLength = minSegLength || 0;
 
@@ -71,7 +71,8 @@ function concaveHull(points, maxConcavity, minSegLength, strict) {
             updateBBox(node.next);
             segTree.insert(node);
             segTree.insert(node.next);
-            if (strict) tree.remove(c);
+
+            tree.remove(c);
         }
     }
     // console.timeEnd('concave');
