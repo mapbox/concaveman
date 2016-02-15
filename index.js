@@ -124,9 +124,23 @@ function compareDist(a, b) {
 
 // square distance from a segment bounding box to the given one
 function sqSegBoxDist(a, b, bbox) {
-    var dx = Math.max(bbox[0] - Math.max(a[0], b[0]), Math.min(a[0], b[0]) - bbox[2], 0);
-    var dy = Math.max(bbox[1] - Math.max(a[1], b[1]), Math.min(a[1], b[1]) - bbox[3], 0);
-    return dx * dx + dy * dy;
+    if (inside(a, bbox) || inside(b, bbox)) return 0;
+    var d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[2], bbox[1]);
+    if (d1 === 0) return 0;
+    var d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[0], bbox[3]);
+    if (d2 === 0) return 0;
+    var d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[2], bbox[1], bbox[2], bbox[3]);
+    if (d3 === 0) return 0;
+    var d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[3], bbox[2], bbox[3]);
+    if (d4 === 0) return 0;
+    return Math.min(d1, d2, d3, d4);
+}
+
+function inside(a, bbox) {
+    return a[0] >= bbox[0] &&
+           a[0] <= bbox[2] &&
+           a[1] >= bbox[1] &&
+           a[1] <= bbox[3];
 }
 
 // check if the edge (a,b) doesn't intersect any other edges
@@ -251,6 +265,75 @@ function sqSegDist(p, p1, p2) {
 
     dx = p[0] - x;
     dy = p[1] - y;
+
+    return dx * dx + dy * dy;
+}
+
+// segment to segment distance, ported from http://geomalgorithms.com/a07-_distance.html by Dan Sunday
+function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
+    var ux = x1 - x0;
+    var uy = y1 - y0;
+    var vx = x3 - x2;
+    var vy = y3 - y2;
+    var wx = x0 - x2;
+    var wy = y0 - y2;
+    var a = ux * ux + uy * uy;
+    var b = ux * vx + uy * vy;
+    var c = vx * vx + vy * vy;
+    var d = ux * wx + uy * wy;
+    var e = vx * wx + vy * wy;
+    var D = a * c - b * b;
+
+    var sc, sN, tc, tN;
+    var sD = D;
+    var tD = D;
+
+    if (D === 0) {
+        sN = 0;
+        sD = 1;
+        tN = e;
+        tD = c;
+    } else {
+        sN = b * e - c * d;
+        tN = a * e - b * d;
+        if (sN < 0) {
+            sN = 0;
+            tN = e;
+            tD = c;
+        } else if (sN > sD) {
+            sN = sD;
+            tN = e + b;
+            tD = c;
+        }
+    }
+
+    if (tN < 0.0) {
+        tN = 0.0;
+        if (-d < 0.0) sN = 0.0;
+        else if (-d > a) sN = sD;
+        else {
+            sN = -d;
+            sD = a;
+        }
+    } else if (tN > tD) {
+        tN = tD;
+        if ((-d + b) < 0.0) sN = 0;
+        else if (-d + b > a) sN = sD;
+        else {
+            sN = -d + b;
+            sD = a;
+        }
+    }
+
+    sc = sN === 0 ? 0 : sN / sD;
+    tc = tN === 0 ? 0 : tN / tD;
+
+    var cx = (1 - sc) * x0 + sc * x1;
+    var cy = (1 - sc) * y0 + sc * y1;
+    var cx2 = (1 - tc) * x2 + tc * x3;
+    var cy2 = (1 - tc) * y2 + tc * y3;
+    var dx = cx2 - cx;
+    var dy = cy2 - cy;
 
     return dx * dx + dy * dy;
 }
