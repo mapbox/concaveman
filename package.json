@@ -11,8 +11,8 @@
     "tinyqueue": "^1.0.1"
   },
   "devDependencies": {
-    "eslint": "^1.10.3",
-    "eslint-config-mourner": "^1.0.1",
+    "eslint": "^2.1.0",
+    "eslint-config-mourner": "^2.0.0",
     "tap": "^5.4.3"
   },
   "scripts": {
