@@ -7,6 +7,7 @@ var pointInPolygon = require('point-in-polygon');
 var orient = require('robust-orientation')[3];
 
 module.exports = concaveman;
+module.exports.default = concaveman;
 
 function concaveman(points, concavity, lengthThreshold) {
     // a relative measure of concavity; higher value means simpler hull
