@@ -34,6 +34,16 @@ This implementation dramatically improves performance over the one stated in the
 by introducing a fast _k nearest points to a segment_ algorithm,
 a modification of a depth-first kNN R-tree search using a priority queue.
 
+### TypeScript
+
+TypeScript implementation was added to the [DefinitelyTyped repository](https://github.com/DefinitelyTyped/DefinitelyTyped).
+
+**Install definition**
+
+```bash
+$ typings install --save --global dt~concaveman
+```
+
 ### Dependencies
 
 - [monotone-convex-hull-2d](https://github.com/mikolalysenko/monotone-convex-hull-2d) for the convex hull algorithm
