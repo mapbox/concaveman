@@ -38,16 +38,6 @@ a modification of a depth-first kNN R-tree search using a priority queue.
 
 TypeScript implementation was added to the [DefinitelyTyped repository](https://github.com/DefinitelyTyped/DefinitelyTyped).
 
-**Install definition**
-
-Using DefinitelyTyped
-
-```bash
-$ typings install --save --global dt~concaveman
-```
-
-Using Typescript 2.0
-
 ```bash
 $ npm install --save @types/concaveman
 ```
