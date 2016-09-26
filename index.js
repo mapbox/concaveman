@@ -32,7 +32,7 @@ function concaveman(points, concavity, lengthThreshold) {
     }
 
     // index the segments with an R-tree (for intersection checks)
-    var segTree = rbush(16, ['.minX', '.minY', '.maxX', '.maxY']);
+    var segTree = rbush(16);
     for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
 
     var sqConcavity = concavity * concavity;
@@ -90,7 +90,7 @@ function findCandidate(tree, a, b, c, d, maxDist, segTree) {
         for (var i = 0; i < node.children.length; i++) {
             var child = node.children[i];
 
-            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child.bbox);
+            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child);
             if (dist > maxDist) continue; // skip the node if it's farther than we ever need
 
             queue.push({
@@ -126,22 +126,22 @@ function compareDist(a, b) {
 // square distance from a segment bounding box to the given one
 function sqSegBoxDist(a, b, bbox) {
     if (inside(a, bbox) || inside(b, bbox)) return 0;
-    var d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[2], bbox[1]);
+    var d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.maxX, bbox.minY);
     if (d1 === 0) return 0;
-    var d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[0], bbox[3]);
+    var d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.minX, bbox.maxY);
     if (d2 === 0) return 0;
-    var d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[2], bbox[1], bbox[2], bbox[3]);
+    var d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.maxX, bbox.minY, bbox.maxX, bbox.maxY);
     if (d3 === 0) return 0;
-    var d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[3], bbox[2], bbox[3]);
+    var d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.maxY, bbox.maxX, bbox.maxY);
     if (d4 === 0) return 0;
     return Math.min(d1, d2, d3, d4);
 }
 
 function inside(a, bbox) {
-    return a[0] >= bbox[0] &&
-           a[0] <= bbox[2] &&
-           a[1] >= bbox[1] &&
-           a[1] <= bbox[3];
+    return a[0] >= bbox.minX &&
+           a[0] <= bbox.maxX &&
+           a[1] >= bbox.minY &&
+           a[1] <= bbox.maxY;
 }
 
 // check if the edge (a,b) doesn't intersect any other edges
@@ -151,7 +151,7 @@ function noIntersections(a, b, segTree) {
     var maxX = Math.max(a[0], b[0]);
     var maxY = Math.max(a[1], b[1]);
 
-    var edges = segTree.search([minX, minY, maxX, maxY]);
+    var edges = segTree.search({minX: minX, minY: minY, maxX: maxX, maxY: maxY});
     for (var i = 0; i < edges.length; i++) {
         if (intersects(edges[i].p, edges[i].next.p, a, b)) return false;
     }
