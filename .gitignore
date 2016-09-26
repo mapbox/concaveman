@@ -3,3 +3,4 @@ coverage
 .nyc_output
 tmp
 *.log
+viz/bundle.js
