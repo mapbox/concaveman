@@ -40,8 +40,16 @@ TypeScript implementation was added to the [DefinitelyTyped repository](https://
 
 **Install definition**
 
+Using DefinitelyTyped
+
 ```bash
 $ typings install --save --global dt~concaveman
+```
+
+Using Typescript 2.0
+
+```bash
+$ npm install --save @types/concaveman
 ```
 
 ### Dependencies
