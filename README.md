@@ -36,7 +36,7 @@ a modification of a depth-first kNN R-tree search using a priority queue.
 
 ### TypeScript
 
-[TypeScript type definitions](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/concaveman)
+[TypeScript type definitions](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/concaveman)
 are available trough `npm install --save @types/concaveman`.
 
 ### Dependencies
