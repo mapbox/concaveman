@@ -46,3 +46,7 @@ are available trough `npm install --save @types/concaveman`.
 - [tinyqueue](https://github.com/mourner/tinyqueue) as a priority queue
 - [point-in-polygon](https://github.com/substack/point-in-polygon) for point in polygon queries
 - [robust-orientation](https://github.com/mikolalysenko/robust-orientation) for 3-point orientation tests
+
+### C++ Port
+
+In 2019, a [C++ port](https://github.com/sadaszewski/concaveman-cpp) has been created, allowing for efficient usage from C/C++, Python (via cffi) and other languages which feature an FFI and/or plug-in mechanism for C (e.g. a MATLAB MEX file should be easy to prepare).
