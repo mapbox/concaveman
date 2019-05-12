@@ -49,4 +49,4 @@ are available trough `npm install --save @types/concaveman`.
 
 ### C++ Port
 
-In 2019, a [C++ port](https://github.com/sadaszewski/concaveman-cpp) has been created, allowing for efficient usage from C/C++, Python (via cffi) and other languages which feature an FFI and/or plug-in mechanism for C (e.g. a MATLAB MEX file should be easy to prepare).
+In 2019, a [C++ port](https://github.com/sadaszewski/concaveman-cpp) has been created, allowing for efficient usage from C/C++, Python (via cffi) and other languages featuring an FFI and/or plug-in mechanism for C (e.g. a MATLAB MEX file should be easy to prepare).
