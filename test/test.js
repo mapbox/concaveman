@@ -1,6 +1,6 @@
 'use strict';
 
-var test = require('tap').test;
+var test = require('tape').test;
 var concaveman = require('../');
 
 var points = require('./fixtures/points-1k.json');

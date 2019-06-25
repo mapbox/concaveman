@@ -1,6 +1,6 @@
 'use strict';
 
-var rbush = require('rbush');
+var RBush = require('rbush');
 var convexHull = require('monotone-convex-hull-2d');
 var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
@@ -20,7 +20,19 @@ function concaveman(points, concavity, lengthThreshold) {
     var hull = fastConvexHull(points);
 
     // index the points with an R-tree
-    var tree = rbush(16, ['[0]', '[1]', '[0]', '[1]']).load(points);
+    var tree = new RBush(16);
+    tree.toBBox = function (a) {
+        return {
+            minX: a[0],
+            minY: a[1],
+            maxX: a[0],
+            maxY: a[1]
+        };
+    };
+    tree.compareMinX = function (a, b) { return a[0] - b[0]; };
+    tree.compareMinY = function (a, b) { return a[1] - b[1]; };
+
+    tree.load(points);
 
     // turn the convex hull into a linked list and populate the initial edge queue with the nodes
     var queue = [];
@@ -32,7 +44,7 @@ function concaveman(points, concavity, lengthThreshold) {
     }
 
     // index the segments with an R-tree (for intersection checks)
-    var segTree = rbush(16);
+    var segTree = new RBush(16);
     for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
 
     var sqConcavity = concavity * concavity;
@@ -81,7 +93,7 @@ function concaveman(points, concavity, lengthThreshold) {
 }
 
 function findCandidate(tree, a, b, c, d, maxDist, segTree) {
-    var queue = new Queue(null, compareDist);
+    var queue = new Queue([], compareDist);
     var node = tree.data;
 
     // search through the point R-tree with a depth-first search using a priority queue
