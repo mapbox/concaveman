@@ -1,10 +1,10 @@
 'use strict';
 
 var RBush = require('rbush');
-var convexHull = require('monotone-convex-hull-2d');
 var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
-var orient = require('robust-orientation')[3];
+const orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
+const monotoneChainConvexHull = require('monotone-chain-convex-hull');
 
 module.exports = concaveman;
 module.exports.default = concaveman;
@@ -173,8 +173,8 @@ function noIntersections(a, b, segTree) {
 // check if the edges (p1,q1) and (p2,q2) intersect
 function intersects(p1, q1, p2, q2) {
     return p1 !== q2 && q1 !== p2 &&
-        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
-        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
+        orient(p1[0], p1[1], q1[0], q1[1], p2[0], p2[1]) > 0 !== orient(p1[0], p1[1], q1[0], q1[1], q2[0], q2[1]) > 0 &&
+        orient(p2[0], p2[1], q2[0], q2[1], p1[0], p1[1]) > 0 !== orient(p2[0], p2[1], q2[0], q2[1], q1[0], q1[1]) > 0;
 }
 
 // update the bounding box of a node's edge
@@ -212,12 +212,7 @@ function fastConvexHull(points) {
     }
 
     // get convex hull around the filtered points
-    var indices = convexHull(filtered);
-
-    // return the hull as array of points (rather than indices)
-    var hull = [];
-    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
-    return hull;
+    return monotoneChainConvexHull(filtered);
 }
 
 // create a new node in a doubly linked list
