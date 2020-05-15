@@ -4,7 +4,6 @@
   "description": "Fast 2D concave hull algorithm in JavaScript (generates an outline of a point set)",
   "main": "index.js",
   "dependencies": {
-    "monotone-chain-convex-hull": "^1.0.0",
     "point-in-polygon": "^1.0.1",
     "rbush": "^3.0.0",
     "robust-predicates": "^2.0.4",

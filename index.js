@@ -4,7 +4,6 @@ var RBush = require('rbush');
 var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
 const orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
-const monotoneChainConvexHull = require('monotone-chain-convex-hull');
 
 module.exports = concaveman;
 module.exports.default = concaveman;
@@ -212,7 +211,7 @@ function fastConvexHull(points) {
     }
 
     // get convex hull around the filtered points
-    return monotoneChainConvexHull(filtered);
+    return convexHull(filtered);
 }
 
 // create a new node in a doubly linked list
@@ -344,4 +343,34 @@ function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
     var dy = cy2 - cy;
 
     return dx * dx + dy * dy;
+}
+
+function cross(p1, p2, p3) {
+    return orient(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+}
+
+function convexHull(points) {
+    points.sort(function (a, b) {
+        return a[0] === b[0] ? a[1] - b[1] : a[0] - b[0];
+    });
+
+    var lower = [];
+    for (var i = 0; i < points.length; i++) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0) {
+            lower.pop();
+        }
+        lower.push(points[i]);
+    }
+
+    var upper = [];
+    for (var ii = points.length - 1; ii >= 0; ii--) {
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], points[ii]) <= 0) {
+            upper.pop();
+        }
+        upper.push(points[ii]);
+    }
+
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
 }
