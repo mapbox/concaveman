@@ -1,10 +1,9 @@
 'use strict';
 
 var RBush = require('rbush');
-var convexHull = require('monotone-convex-hull-2d');
 var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
-var orient = require('robust-orientation')[3];
+const orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
 
 module.exports = concaveman;
 module.exports.default = concaveman;
@@ -170,11 +169,15 @@ function noIntersections(a, b, segTree) {
     return true;
 }
 
+function cross(p1, p2, p3) {
+    return orient(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+}
+
 // check if the edges (p1,q1) and (p2,q2) intersect
 function intersects(p1, q1, p2, q2) {
     return p1 !== q2 && q1 !== p2 &&
-        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
-        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
+        cross(p1, q1, p2) > 0 !== cross(p1, q1, q2) > 0 &&
+        cross(p2, q2, p1) > 0 !== cross(p2, q2, q1) > 0;
 }
 
 // update the bounding box of a node's edge
@@ -212,12 +215,7 @@ function fastConvexHull(points) {
     }
 
     // get convex hull around the filtered points
-    var indices = convexHull(filtered);
-
-    // return the hull as array of points (rather than indices)
-    var hull = [];
-    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
-    return hull;
+    return convexHull(filtered);
 }
 
 // create a new node in a doubly linked list
@@ -349,4 +347,32 @@ function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
     var dy = cy2 - cy;
 
     return dx * dx + dy * dy;
+}
+
+function compareByX(a, b) {
+    return a[0] === b[0] ? a[1] - b[1] : a[0] - b[0];
+}
+
+function convexHull(points) {
+    points.sort(compareByX);
+
+    var lower = [];
+    for (var i = 0; i < points.length; i++) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0) {
+            lower.pop();
+        }
+        lower.push(points[i]);
+    }
+
+    var upper = [];
+    for (var ii = points.length - 1; ii >= 0; ii--) {
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], points[ii]) <= 0) {
+            upper.pop();
+        }
+        upper.push(points[ii]);
+    }
+
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
 }
