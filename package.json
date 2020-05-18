@@ -10,9 +10,9 @@
     "tinyqueue": "^2.0.3"
   },
   "devDependencies": {
-    "eslint": "^4.19.1",
+    "eslint": "^7.0.0",
     "eslint-config-mourner": "^2.0.1",
-    "tape": "^4.10.2"
+    "tape": "^5.0.0"
   },
   "scripts": {
     "pretest": "eslint index.js test/*.js",
