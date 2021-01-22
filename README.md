@@ -26,7 +26,7 @@ Higher values result in simpler shapes.
 ### Algorithm
 
 The algorithm is based on ideas from the paper [A New Concave Hull Algorithm and Concaveness Measure
-for n-dimensional Datasets, 2012](http://www.iis.sinica.edu.tw/page/jise/2012/201205_10.pdf)
+for n-dimensional Datasets, 2012](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.676.6258&rep=rep1&type=pdf)
 by Jin-Seo Park and Se-Jong Oh.
 
 This implementation dramatically improves performance over the one stated in the paper
