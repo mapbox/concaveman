@@ -4,15 +4,15 @@
   "description": "Fast 2D concave hull algorithm in JavaScript (generates an outline of a point set)",
   "main": "index.js",
   "dependencies": {
-    "point-in-polygon": "^1.0.1",
-    "rbush": "^3.0.0",
+    "point-in-polygon": "^1.1.0",
+    "rbush": "^3.0.1",
     "robust-predicates": "^2.0.4",
     "tinyqueue": "^2.0.3"
   },
   "devDependencies": {
-    "eslint": "^7.0.0",
+    "eslint": "^7.32.0",
     "eslint-config-mourner": "^2.0.1",
-    "tape": "^5.0.0"
+    "tape": "^5.3.1"
   },
   "scripts": {
     "pretest": "eslint index.js test/*.js",
