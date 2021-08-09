@@ -5,6 +5,11 @@ var Queue = require('tinyqueue');
 var pointInPolygon = require('point-in-polygon');
 const orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
 
+// Fix for require issue in webpack https://github.com/mapbox/concaveman/issues/18
+if (Queue.default) {
+    Queue = Queue.default;
+}
+
 module.exports = concaveman;
 module.exports.default = concaveman;
 
