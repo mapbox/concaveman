@@ -1,7 +1,7 @@
 'use strict';
 
 var test = require('tape').test;
-var concaveman = require('../');
+var concaveman = require('../dist/index-cjs');
 
 var points = require('./fixtures/points-1k.json');
 var hull = require('./fixtures/points-1k-hull.json');

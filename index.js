@@ -1,17 +1,11 @@
 'use strict';
 
-var RBush = require('rbush');
-var Queue = require('tinyqueue');
-var pointInPolygon = require('point-in-polygon');
-var orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
+import RBush from 'rbush';
+import Queue from 'tinyqueue';
+import { nested as pointInPolygon } from 'point-in-polygon';
+import { orient2d as orient } from 'robust-predicates';
 
-// Fix for require issue in webpack https://github.com/mapbox/concaveman/issues/18
-if (Queue.default) {
-    Queue = Queue.default;
-}
-
-module.exports = concaveman;
-module.exports.default = concaveman;
+export default concaveman
 
 function concaveman(points, concavity, lengthThreshold) {
     // a relative measure of concavity; higher value means simpler hull

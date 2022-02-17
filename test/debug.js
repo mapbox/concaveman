@@ -1,7 +1,7 @@
 'use strict';
 
 var fs = require('fs');
-var concaveman = require('../');
+var concaveman = require('../dist/index-cjs');
 
 var points = require('../tmp/test.json');
 

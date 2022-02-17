@@ -2,7 +2,8 @@
   "name": "concaveman",
   "version": "1.2.1",
   "description": "Fast 2D concave hull algorithm in JavaScript (generates an outline of a point set)",
-  "main": "index.js",
+  "module": "index.js",
+  "main": "./dist/index-cjs.js",
   "dependencies": {
     "point-in-polygon": "^1.1.0",
     "rbush": "^3.0.1",
@@ -12,9 +13,11 @@
   "devDependencies": {
     "eslint": "^7.32.0",
     "eslint-config-mourner": "^2.0.1",
+    "rollup": "^2.67.2",
     "tape": "^5.3.1"
   },
   "scripts": {
+    "build": "rollup -c",
     "pretest": "eslint index.js test/*.js",
     "test": "tape test/test.js"
   },
