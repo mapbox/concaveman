@@ -96,6 +96,95 @@ function concaveman(points, concavity, lengthThreshold) {
     return concave;
 }
 
+async function concavemanAsync(points, concavity, lengthThreshold) {
+    return new Promise((resolve, reject) => {
+        try {
+            // a relative measure of concavity; higher value means simpler hull
+            concavity = Math.max(0, concavity === undefined ? 2 : concavity);
+
+            // when a segment goes below this length threshold, it won't be drilled down further
+            lengthThreshold = lengthThreshold || 0;
+
+            // start with a convex hull of the points
+            var hull = fastConvexHull(points);
+
+            // index the points with an R-tree
+            var tree = new RBush(16);
+            tree.toBBox = function (a) {
+                return {
+                    minX: a[0],
+                    minY: a[1],
+                    maxX: a[0],
+                    maxY: a[1]
+                };
+            };
+            tree.compareMinX = function (a, b) { return a[0] - b[0]; };
+            tree.compareMinY = function (a, b) { return a[1] - b[1]; };
+
+            tree.load(points);
+
+            // turn the convex hull into a linked list and populate the initial edge queue with the nodes
+            var queue = [];
+            for (var i = 0, last; i < hull.length; i++) {
+                var p = hull[i];
+                tree.remove(p);
+                last = insertNode(p, last);
+                queue.push(last);
+            }
+
+            // index the segments with an R-tree (for intersection checks)
+            var segTree = new RBush(16);
+            for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
+
+            var sqConcavity = concavity * concavity;
+            var sqLenThreshold = lengthThreshold * lengthThreshold;
+
+            // process edges one by one
+            while (queue.length) {
+                var node = queue.shift();
+                var a = node.p;
+                var b = node.next.p;
+
+                // skip the edge if it's already short enough
+                var sqLen = getSqDist(a, b);
+                if (sqLen < sqLenThreshold) continue;
+
+                var maxSqLen = sqLen / sqConcavity;
+
+                // find the best connection point for the current edge to flex inward to
+                p = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
+
+                // if we found a connection and it satisfies our concavity measure
+                if (p && Math.min(getSqDist(p, a), getSqDist(p, b)) <= maxSqLen) {
+                    // connect the edge endpoints through this point and add 2 new edges to the queue
+                    queue.push(node);
+                    queue.push(insertNode(p, node));
+
+                    // update point and segment indexes
+                    tree.remove(p);
+                    segTree.remove(node);
+                    segTree.insert(updateBBox(node));
+                    segTree.insert(updateBBox(node.next));
+                }
+            }
+
+            // convert the resulting hull linked list to an array of points
+            node = last;
+            var concave = [];
+            do {
+                concave.push(node.p);
+                node = node.next;
+            } while (node !== last);
+
+            concave.push(node.p);
+
+            resolve(concave);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
 function findCandidate(tree, a, b, c, d, maxDist, segTree) {
     var queue = new Queue([], compareDist);
     var node = tree.data;
@@ -155,9 +244,9 @@ function sqSegBoxDist(a, b, bbox) {
 
 function inside(a, bbox) {
     return a[0] >= bbox.minX &&
-           a[0] <= bbox.maxX &&
-           a[1] >= bbox.minY &&
-           a[1] <= bbox.maxY;
+        a[0] <= bbox.maxX &&
+        a[1] >= bbox.minY &&
+        a[1] <= bbox.maxY;
 }
 
 // check if the edge (a,b) doesn't intersect any other edges
@@ -167,7 +256,7 @@ function noIntersections(a, b, segTree) {
     var maxX = Math.max(a[0], b[0]);
     var maxY = Math.max(a[1], b[1]);
 
-    var edges = segTree.search({minX: minX, minY: minY, maxX: maxX, maxY: maxY});
+    var edges = segTree.search({ minX: minX, minY: minY, maxX: maxX, maxY: maxY });
     for (var i = 0; i < edges.length; i++) {
         if (intersects(edges[i].p, edges[i].next.p, a, b)) return false;
     }
