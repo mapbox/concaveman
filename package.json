@@ -1,6 +1,6 @@
 {
   "name": "concaveman",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Fast 2D concave hull algorithm in JavaScript (generates an outline of a point set)",
   "type": "module",
   "main": "index.js",
