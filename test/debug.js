@@ -1,30 +1,30 @@
-'use strict';
 
-var fs = require('fs');
-var concaveman = require('../');
 
-var points = require('../tmp/test.json');
+const fs = require('fs');
+const concaveman = require('../');
 
-var colors = ['#006837', '#1a9850', '#66bd63', '#a6d96a', '#d9ef8b', '#fee08b', '#fdae61', '#f46d43', '#d73027', '#a50026'];
-var distStep = 100000;
-var numClasses = 10;
+const points = require('../tmp/test.json');
 
-var dist = distStep;
-var start = 0;
-var end = 0;
-var hulls = [];
+const colors = ['#006837', '#1a9850', '#66bd63', '#a6d96a', '#d9ef8b', '#fee08b', '#fdae61', '#f46d43', '#d73027', '#a50026'];
+const distStep = 100000;
+const numClasses = 10;
+
+let dist = distStep;
+let start = 0;
+let end = 0;
+const hulls = [];
 
 console.time('total');
-for (var i = 0, last = []; i < numClasses; i++) {
+for (let i = 0, last = []; i < numClasses; i++) {
     start = end;
     while (points[end][2] < dist) end++;
 
-    var part = points.slice(start, end);
+    const part = points.slice(start, end);
 
-    var now = Date.now();
-    var hull = concaveman(part.concat(last), 1.5, 0.005);
-    console.log('concave hull on ' + (part.length + last.length) + ' points in ' +
-        (Date.now() - now) + 'ms, size: ' + hull.length);
+    const now = Date.now();
+    const hull = concaveman(part.concat(last), 1.5, 0.005);
+    console.log(`concave hull on ${  part.length + last.length  } points in ${
+        Date.now() - now  }ms, size: ${  hull.length}`);
 
     hulls.push({
         type: 'Feature',
@@ -45,7 +45,7 @@ for (var i = 0, last = []; i < numClasses; i++) {
 }
 console.timeEnd('total');
 
-var collection = {
+const collection = {
     type: 'FeatureCollection',
     features: hulls.reverse()
 };

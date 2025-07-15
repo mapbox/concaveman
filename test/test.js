@@ -1,20 +1,17 @@
-'use strict';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import concaveman from '../index.js';
 
-var test = require('tape').test;
-var concaveman = require('../');
+import points from './fixtures/points-1k.json' with {type: 'json'};
+import hull from './fixtures/points-1k-hull.json' with {type: 'json'};
+import hull2 from './fixtures/points-1k-hull2.json' with {type: 'json'};
 
-var points = require('./fixtures/points-1k.json');
-var hull = require('./fixtures/points-1k-hull.json');
-var hull2 = require('./fixtures/points-1k-hull2.json');
-
-test('default concave hull', function (t) {
-    var result = concaveman(points);
-    t.deepEqual(result, hull);
-    t.end();
+test('default concave hull', () => {
+    const result = concaveman(points);
+    assert.deepEqual(result, hull);
 });
 
-test('tuned concave hull', function (t) {
-    var result = concaveman(points, 3, 0.01);
-    t.deepEqual(result, hull2);
-    t.end();
+test('tuned concave hull', () => {
+    const result = concaveman(points, 3, 0.01);
+    assert.deepEqual(result, hull2);
 });

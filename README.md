@@ -11,8 +11,10 @@ A very fast **2D concave hull** algorithm in JavaScript (generates a general out
 ### Usage
 
 ```js
-var points = [[10, 20], [30, 12.5], ...];
-var polygon = concaveman(points);
+import concaveman from 'concaveman';
+
+const points = [[10, 20], [30, 12.5], ...];
+const polygon = concaveman(points);
 ```
 
 Signature: `concaveman(points[, concavity = 2, lengthThreshold = 0])`

@@ -1,19 +1,10 @@
-'use strict';
 
-var RBush = require('rbush');
-var Queue = require('tinyqueue');
-var pointInPolygon = require('point-in-polygon');
-var orient = require('robust-predicates/umd/orient2d.min.js').orient2d;
+import RBush from 'rbush';
+import Queue from 'tinyqueue';
+import pointInPolygon from 'point-in-polygon';
+import {orient2d} from 'robust-predicates';
 
-// Fix for require issue in webpack https://github.com/mapbox/concaveman/issues/18
-if (Queue.default) {
-    Queue = Queue.default;
-}
-
-module.exports = concaveman;
-module.exports.default = concaveman;
-
-function concaveman(points, concavity, lengthThreshold) {
+export default function concaveman(points, concavity, lengthThreshold) {
     // a relative measure of concavity; higher value means simpler hull
     concavity = Math.max(0, concavity === undefined ? 2 : concavity);
 
@@ -21,10 +12,10 @@ function concaveman(points, concavity, lengthThreshold) {
     lengthThreshold = lengthThreshold || 0;
 
     // start with a convex hull of the points
-    var hull = fastConvexHull(points);
+    const hull = fastConvexHull(points);
 
     // index the points with an R-tree
-    var tree = new RBush(16);
+    const tree = new RBush(16);
     tree.toBBox = function (a) {
         return {
             minX: a[0],
@@ -39,35 +30,36 @@ function concaveman(points, concavity, lengthThreshold) {
     tree.load(points);
 
     // turn the convex hull into a linked list and populate the initial edge queue with the nodes
-    var queue = [];
-    for (var i = 0, last; i < hull.length; i++) {
-        var p = hull[i];
+    const queue = [];
+    let last;
+    for (let i = 0; i < hull.length; i++) {
+        const p = hull[i];
         tree.remove(p);
         last = insertNode(p, last);
         queue.push(last);
     }
 
     // index the segments with an R-tree (for intersection checks)
-    var segTree = new RBush(16);
-    for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
+    const segTree = new RBush(16);
+    for (let i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
 
-    var sqConcavity = concavity * concavity;
-    var sqLenThreshold = lengthThreshold * lengthThreshold;
+    const sqConcavity = concavity * concavity;
+    const sqLenThreshold = lengthThreshold * lengthThreshold;
 
     // process edges one by one
     while (queue.length) {
-        var node = queue.shift();
-        var a = node.p;
-        var b = node.next.p;
+        const node = queue.shift();
+        const a = node.p;
+        const b = node.next.p;
 
         // skip the edge if it's already short enough
-        var sqLen = getSqDist(a, b);
+        const sqLen = getSqDist(a, b);
         if (sqLen < sqLenThreshold) continue;
 
-        var maxSqLen = sqLen / sqConcavity;
+        const maxSqLen = sqLen / sqConcavity;
 
         // find the best connection point for the current edge to flex inward to
-        p = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
+        const p = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
 
         // if we found a connection and it satisfies our concavity measure
         if (p && Math.min(getSqDist(p, a), getSqDist(p, b)) <= maxSqLen) {
@@ -84,8 +76,8 @@ function concaveman(points, concavity, lengthThreshold) {
     }
 
     // convert the resulting hull linked list to an array of points
-    node = last;
-    var concave = [];
+    let node = last;
+    const concave = [];
     do {
         concave.push(node.p);
         node = node.next;
@@ -97,32 +89,32 @@ function concaveman(points, concavity, lengthThreshold) {
 }
 
 function findCandidate(tree, a, b, c, d, maxDist, segTree) {
-    var queue = new Queue([], compareDist);
-    var node = tree.data;
+    const queue = new Queue([], compareDist);
+    let node = tree.data;
 
     // search through the point R-tree with a depth-first search using a priority queue
     // in the order of distance to the edge (b, c)
     while (node) {
-        for (var i = 0; i < node.children.length; i++) {
-            var child = node.children[i];
+        for (let i = 0; i < node.children.length; i++) {
+            const child = node.children[i];
 
-            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child);
+            const dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child);
             if (dist > maxDist) continue; // skip the node if it's farther than we ever need
 
             queue.push({
                 node: child,
-                dist: dist
+                dist
             });
         }
 
         while (queue.length && !queue.peek().node.children) {
-            var item = queue.pop();
-            var p = item.node;
+            const item = queue.pop();
+            const p = item.node;
 
             // skip all points that are as close to adjacent edges (a,b) and (c,d),
             // and points that would introduce self-intersections when connected
-            var d0 = sqSegDist(p, a, b);
-            var d1 = sqSegDist(p, c, d);
+            const d0 = sqSegDist(p, a, b);
+            const d1 = sqSegDist(p, c, d);
             if (item.dist < d0 && item.dist < d1 &&
                 noIntersections(b, p, segTree) &&
                 noIntersections(c, p, segTree)) return p;
@@ -142,13 +134,13 @@ function compareDist(a, b) {
 // square distance from a segment bounding box to the given one
 function sqSegBoxDist(a, b, bbox) {
     if (inside(a, bbox) || inside(b, bbox)) return 0;
-    var d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.maxX, bbox.minY);
+    const d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.maxX, bbox.minY);
     if (d1 === 0) return 0;
-    var d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.minX, bbox.maxY);
+    const d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.minY, bbox.minX, bbox.maxY);
     if (d2 === 0) return 0;
-    var d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.maxX, bbox.minY, bbox.maxX, bbox.maxY);
+    const d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.maxX, bbox.minY, bbox.maxX, bbox.maxY);
     if (d3 === 0) return 0;
-    var d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.maxY, bbox.maxX, bbox.maxY);
+    const d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox.minX, bbox.maxY, bbox.maxX, bbox.maxY);
     if (d4 === 0) return 0;
     return Math.min(d1, d2, d3, d4);
 }
@@ -162,20 +154,20 @@ function inside(a, bbox) {
 
 // check if the edge (a,b) doesn't intersect any other edges
 function noIntersections(a, b, segTree) {
-    var minX = Math.min(a[0], b[0]);
-    var minY = Math.min(a[1], b[1]);
-    var maxX = Math.max(a[0], b[0]);
-    var maxY = Math.max(a[1], b[1]);
+    const minX = Math.min(a[0], b[0]);
+    const minY = Math.min(a[1], b[1]);
+    const maxX = Math.max(a[0], b[0]);
+    const maxY = Math.max(a[1], b[1]);
 
-    var edges = segTree.search({minX: minX, minY: minY, maxX: maxX, maxY: maxY});
-    for (var i = 0; i < edges.length; i++) {
+    const edges = segTree.search({minX, minY, maxX, maxY});
+    for (let i = 0; i < edges.length; i++) {
         if (intersects(edges[i].p, edges[i].next.p, a, b)) return false;
     }
     return true;
 }
 
 function cross(p1, p2, p3) {
-    return orient(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+    return orient2d(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
 }
 
 // check if the edges (p1,q1) and (p2,q2) intersect
@@ -187,8 +179,8 @@ function intersects(p1, q1, p2, q2) {
 
 // update the bounding box of a node's edge
 function updateBBox(node) {
-    var p1 = node.p;
-    var p2 = node.next.p;
+    const p1 = node.p;
+    const p2 = node.next.p;
     node.minX = Math.min(p1[0], p2[0]);
     node.minY = Math.min(p1[1], p2[1]);
     node.maxX = Math.max(p1[0], p2[0]);
@@ -198,14 +190,14 @@ function updateBBox(node) {
 
 // speed up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
 function fastConvexHull(points) {
-    var left = points[0];
-    var top = points[0];
-    var right = points[0];
-    var bottom = points[0];
+    let left = points[0];
+    let top = points[0];
+    let right = points[0];
+    let bottom = points[0];
 
     // find the leftmost, rightmost, topmost and bottommost points
-    for (var i = 0; i < points.length; i++) {
-        var p = points[i];
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
         if (p[0] < left[0]) left = p;
         if (p[0] > right[0]) right = p;
         if (p[1] < top[1]) top = p;
@@ -213,9 +205,9 @@ function fastConvexHull(points) {
     }
 
     // filter out points that are inside the resulting quadrilateral
-    var cull = [left, top, right, bottom];
-    var filtered = cull.slice();
-    for (i = 0; i < points.length; i++) {
+    const cull = [left, top, right, bottom];
+    const filtered = cull.slice();
+    for (let i = 0; i < points.length; i++) {
         if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
     }
 
@@ -225,8 +217,8 @@ function fastConvexHull(points) {
 
 // create a new node in a doubly linked list
 function insertNode(p, prev) {
-    var node = {
-        p: p,
+    const node = {
+        p,
         prev: null,
         next: null,
         minX: 0,
@@ -251,7 +243,7 @@ function insertNode(p, prev) {
 // square distance between 2 points
 function getSqDist(p1, p2) {
 
-    var dx = p1[0] - p2[0],
+    const dx = p1[0] - p2[0],
         dy = p1[1] - p2[1];
 
     return dx * dx + dy * dy;
@@ -260,14 +252,14 @@ function getSqDist(p1, p2) {
 // square distance from a point to a segment
 function sqSegDist(p, p1, p2) {
 
-    var x = p1[0],
+    let x = p1[0],
         y = p1[1],
         dx = p2[0] - x,
         dy = p2[1] - y;
 
     if (dx !== 0 || dy !== 0) {
 
-        var t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+        const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
 
         if (t > 1) {
             x = p2[0];
@@ -287,22 +279,22 @@ function sqSegDist(p, p1, p2) {
 
 // segment to segment distance, ported from http://geomalgorithms.com/a07-_distance.html by Dan Sunday
 function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
-    var ux = x1 - x0;
-    var uy = y1 - y0;
-    var vx = x3 - x2;
-    var vy = y3 - y2;
-    var wx = x0 - x2;
-    var wy = y0 - y2;
-    var a = ux * ux + uy * uy;
-    var b = ux * vx + uy * vy;
-    var c = vx * vx + vy * vy;
-    var d = ux * wx + uy * wy;
-    var e = vx * wx + vy * wy;
-    var D = a * c - b * b;
+    const ux = x1 - x0;
+    const uy = y1 - y0;
+    const vx = x3 - x2;
+    const vy = y3 - y2;
+    const wx = x0 - x2;
+    const wy = y0 - y2;
+    const a = ux * ux + uy * uy;
+    const b = ux * vx + uy * vy;
+    const c = vx * vx + vy * vy;
+    const d = ux * wx + uy * wy;
+    const e = vx * wx + vy * wy;
+    const D = a * c - b * b;
 
-    var sc, sN, tc, tN;
-    var sD = D;
-    var tD = D;
+    let sN, tN;
+    let sD = D;
+    let tD = D;
 
     if (D === 0) {
         sN = 0;
@@ -341,15 +333,15 @@ function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
         }
     }
 
-    sc = sN === 0 ? 0 : sN / sD;
-    tc = tN === 0 ? 0 : tN / tD;
+    const sc = sN === 0 ? 0 : sN / sD;
+    const tc = tN === 0 ? 0 : tN / tD;
 
-    var cx = (1 - sc) * x0 + sc * x1;
-    var cy = (1 - sc) * y0 + sc * y1;
-    var cx2 = (1 - tc) * x2 + tc * x3;
-    var cy2 = (1 - tc) * y2 + tc * y3;
-    var dx = cx2 - cx;
-    var dy = cy2 - cy;
+    const cx = (1 - sc) * x0 + sc * x1;
+    const cy = (1 - sc) * y0 + sc * y1;
+    const cx2 = (1 - tc) * x2 + tc * x3;
+    const cy2 = (1 - tc) * y2 + tc * y3;
+    const dx = cx2 - cx;
+    const dy = cy2 - cy;
 
     return dx * dx + dy * dy;
 }
@@ -361,16 +353,16 @@ function compareByX(a, b) {
 function convexHull(points) {
     points.sort(compareByX);
 
-    var lower = [];
-    for (var i = 0; i < points.length; i++) {
+    const lower = [];
+    for (let i = 0; i < points.length; i++) {
         while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0) {
             lower.pop();
         }
         lower.push(points[i]);
     }
 
-    var upper = [];
-    for (var ii = points.length - 1; ii >= 0; ii--) {
+    const upper = [];
+    for (let ii = points.length - 1; ii >= 0; ii--) {
         while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], points[ii]) <= 0) {
             upper.pop();
         }
