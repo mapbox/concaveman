@@ -90,6 +90,7 @@ export default function concaveman(points, concavity, lengthThreshold) {
 
 function findCandidate(tree, a, b, c, d, maxDist, segTree) {
     const queue = new Queue([], compareDist);
+    const skipped = [];
     let node = tree.data;
 
     // search through the point R-tree with a depth-first search using a priority queue
@@ -117,7 +118,16 @@ function findCandidate(tree, a, b, c, d, maxDist, segTree) {
             const d1 = sqSegDist(p, c, d);
             if (item.dist < d0 && item.dist < d1 &&
                 noIntersections(b, p, segTree) &&
-                noIntersections(c, p, segTree)) return p;
+                noIntersections(c, p, segTree)) {
+
+                // if a point we skipped would end up outside the hull after connecting through p,
+                // connect through the closest such point instead
+                for (const q of skipped) {
+                    if (insideTriangle(q, b, p, c)) return q;
+                }
+                return p;
+            }
+            skipped.push(p);
         }
 
         node = queue.pop();
@@ -168,6 +178,14 @@ function noIntersections(a, b, segTree) {
 
 function cross(p1, p2, p3) {
     return orient2d(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+}
+
+// check if the point p is strictly inside the triangle (a, b, c)
+function insideTriangle(p, a, b, c) {
+    const d1 = cross(a, b, p);
+    const d2 = cross(b, c, p);
+    const d3 = cross(c, a, p);
+    return (d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0);
 }
 
 // check if the edges (p1,q1) and (p2,q2) intersect
