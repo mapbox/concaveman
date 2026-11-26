@@ -333,7 +333,8 @@ function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
         }
     }
 
-    if (tN < 0.0) {
+    // tN === 0 also goes here so that a zero-length second segment (e.g. a single-point bbox) gets the right sN
+    if (tN <= 0.0) {
         tN = 0.0;
         if (-d < 0.0) sN = 0.0;
         else if (-d > a) sN = sD;
