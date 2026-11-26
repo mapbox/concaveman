@@ -8,12 +8,12 @@
   "dependencies": {
     "point-in-polygon": "^1.1.0",
     "rbush": "^4.0.1",
-    "robust-predicates": "^3.0.2",
+    "robust-predicates": "^3.0.3",
     "tinyqueue": "^3.0.0"
   },
   "devDependencies": {
-    "eslint": "^9.31.0",
-    "eslint-config-mourner": "^4.0.2"
+    "eslint": "^10.15.0",
+    "eslint-config-mourner": "^5.0.2"
   },
   "scripts": {
     "pretest": "eslint index.js test/*.js",
